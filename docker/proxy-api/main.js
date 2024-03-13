@@ -1,23 +1,17 @@
 import Fastify from 'fastify'
-import { Client } from '@elastic/elasticsearch'
 import fastifyCors from '@fastify/cors'
 
 import fs from 'fs';
 import archiver from 'archiver';
 import csvWriter from 'csv-writer';
 
+import helper from './helper';
+
 const fastify = Fastify({
   logger: process.env.LOGGER === 'on' ? true : false,
 })
 
 fastify.register(fastifyCors)
-
-const client = new Client({
-  // node: process.env.ELASTICSEARCH_HOST,
-  //　compose.ymlから　"http://es01:9200"　を渡されていることを確認
-  // しかしes01:9200に接続できていない雰囲気
-  node: "http://192.168.11.20:9200"
-})
 
 // 以下API-ES接続テスト用の関数
 fastify.get('/test', async (req) => {
@@ -41,108 +35,11 @@ fastify.get('/test', async (req) => {
 // メタデータが取得できているか確認するためのAPI
 fastify.get('/dl/test/:ids', async(req, res) => {
   const ids = "PRJNA13696,PRJNA13699,PRJNA13700,PRJNA13702,PRJNA13729,PRJNA18537,PRJNA18833,PRJNA18929";
-  let metadatas = await get_metadata(ids, "project")
+  let metadatas = await helper.get_metadata(ids, "project")
   // arrayに変換する
-  metadatas = dict2csv(metadatas)
+  metadatas = helper.dict2tsv(metadatas)
   res.send(metadatas)
 })
-
-// for DL metadata API get_metadata ~ get_annotation
-async function get_metadata(ids, type="project") {
-  const id_list = ids.split(",")
-  const res = await client.search({
-    "index": "bioproject",
-    "body":  {
-      "query": {
-              "terms" : {
-                  "_id": id_list
-              },
-      }
-    }
-  })
-  const data = res.hits.hits
-  const metadatas = project_metadata(data);
-  return metadatas
-}
-
-function project_metadata(results) {
-  // 特定の属性のみを抽出
-  const metadatas = results.map(result => {
-    const metadata = {};
-    metadata.identifier = result._source.identifier;
-    metadata.title = result._source.title;
-    metadata.description = result._source.description;
-    metadata.organism = result._source.organism;
-    metadata.organization = result._source.organization;
-
-    // アノテーション処理
-    const annotations = result._source._annotation;
-    if (annotations) {
-      // 属性リストに基づいたループ処理
-      const props = [
-        "sample_organism",
-        "sample_taxid",
-        "sample_host_organism",
-        "sample_host_organism_id",
-        "sample_host_disease",
-        "sample_host_disease_id",
-        "sample_host_location",
-        "sample_ph_range",
-        "sample_temperature_range",
-      ];
-      props.forEach(prop => {
-        metadata[prop] = get_annotation(annotations, prop);
-      });
-    }
-    return metadata;
-  });
-  return metadatas;
-}
-
-function get_annotation(annotations, property) {
-  // 指定したプロパティのannotationを取得
-  //const annotation = annotations.find(a => a.key === property)?.value;
-  const annotation = annotations[property]
-  if (annotation) {
-      // 型によって処理を分岐
-      if (Array.isArray(annotation)) {
-      // リストの場合はカンマ区切り文字列に変換
-      return annotation.join(",");
-      } else if (typeof annotation === "object") {
-      // オブジェクトの場合はJSON文字列に変換
-      return JSON.stringify(annotation);
-      } else {
-      // その他の場合はそのまま返す
-      return annotation;
-      }
-  } else {
-      // annotationが存在しない場合はnullを返す
-      return null;
-  }
-}
-
-function dict2csv(data) {
-  if (typeof data[0] !== "object") {
-    throw new Error("data[0] is not an object");
-  } 
-  
-  const header = Object.keys(data[0]);
-  console.log(header)
-  
-  //const csvWriterInstance = csvWriter.createObjectCsvWriter(csvWriterOptions);
-
-  // 下記recordが変換されたarrayデータ
-  let records = data.map(row => {
-    const record = Object.values(row)
-    console.log(record)
-    return record;
-  });
-  records.unshift(header)
-  return records
-
-}
-
-// ここまでDL API開発用コード（引き続き使うかも）
 
 
 
@@ -424,7 +321,7 @@ fastify.get('/project/metadata/:ids', async (req, rep) => {
       .type('text/plain')
       .send('Bad Request. (no id set.)')
   }
-  const data = await get_metadata(req.params.ids)
+  const data = await helper.get_metadata(req.params.ids)
   rep.header('Content-Disposition', 'attachment; filename=project_metadata.json')
   rep.send(data)
 })
