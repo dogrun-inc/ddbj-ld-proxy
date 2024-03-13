@@ -39,7 +39,7 @@ fastify.get('/test', async (req) => {
 
 
 // メタデータが取得できているか確認するためのAPI
-fastify.get('/dl/test', async(req, res) => {
+fastify.get('/dl/test/:ids', async(req, res) => {
   const ids = "PRJNA13696,PRJNA13699,PRJNA13700,PRJNA13702,PRJNA13729,PRJNA18537,PRJNA18833,PRJNA18929";
   let metadatas = await get_metadata(ids, "project")
   res.send(metadatas)
@@ -58,13 +58,12 @@ async function get_metadata(ids, type="project") {
       }
     }
   })
-  const data = await res.hits.hits
-  const metadatas = await project_metadata(data);
-  console.log(metadatas)
+  const data = res.hits.hits
+  const metadatas = project_metadata(data);
   return metadatas
 }
 
-async function project_metadata(results) {
+function project_metadata(results) {
   // 特定の属性のみを抽出
   const metadatas = results.map(result => {
     const metadata = {};
@@ -421,13 +420,14 @@ fastify.get('/metastanza_data/:index_name/:id', async (req) => {
 
 
 fastify.get('/project/metadata/:ids', async (req, rep) => {
-  if (!req.params.id) {
+  if (!req.params.ids) {
     rep
       .code(400)
       .type('text/plain')
       .send('Bad Request. (no id set.)')
   }
-  const data = get_metadata(req.params.id)
+  const data = await get_metadata(req.params.ids)
+  rep.header('Content-Disposition', 'attachment; filename=project_metadata.json')
   rep.send(data)
 })
 
