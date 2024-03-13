@@ -5,7 +5,7 @@ import fs from 'fs';
 import archiver from 'archiver';
 import csvWriter from 'csv-writer';
 
-import helper from './helper';
+import helper from './helper.js';
 
 const fastify = Fastify({
   logger: process.env.LOGGER === 'on' ? true : false,
