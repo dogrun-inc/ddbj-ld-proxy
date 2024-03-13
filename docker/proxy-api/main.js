@@ -446,7 +446,7 @@ fastify.get('/sequence/genome/:ids', async (req, rep) => {
     '/mnt/data/mdatahub_sample/c1/ref16s_500k.fasta',
     '/mnt/data/mdatahub_sample/c2/ref16s_500k.fasta',
   ]
-  req.params.ids.sqlit(',').forEach((id, index) => {
+  req.params.ids.slit(',').forEach((id, index) => {
     pathMap.set(id, pathList[index])
   })
 
