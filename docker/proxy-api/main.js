@@ -426,7 +426,7 @@ fastify.get('/project/metadata/:ids', async (req, rep) => {
       .send('Bad Request. (no id set.)')
   }
   const data = await get_metadata(req.params.ids)
-  console.log(data)
+  rep.header('Content-Disposition', 'attachment; filename=project_metadata.json')
   rep.send(data)
 })
 
