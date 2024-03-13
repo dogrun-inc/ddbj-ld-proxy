@@ -1,7 +1,7 @@
 # ddbj-ld-proxy
 Proxy API for DDBJ search ElasticSearch cluster
 
-
+!! ローカル環境でのAPI開発テスト版です。動作テスト後こちらのコードを参考に本番のレポジトリで開発を進めます。!!
 
 ## 起動とBioProjectデータのロード
 
