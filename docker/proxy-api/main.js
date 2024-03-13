@@ -322,8 +322,16 @@ fastify.get('/project/metadata/:ids', async (req, rep) => {
       .send('Bad Request. (no id set.)')
   }
   const data = await helper.get_metadata(req.params.ids)
-  rep.header('Content-Disposition', 'attachment; filename=project_metadata.json')
-  rep.send(data)
+
+  // クエリストリングで type=json が指定されている場合はJSONで応答する
+  if (req.query.type === 'json') {
+    rep.header('Content-Disposition', 'attachment; filename=project_metadata.json')
+    rep.send(data)
+  } else {
+    rep.header('Content-Disposition', 'attachment; filename=project_metadata.tsv')
+    rep.type('text/tab-separated-values')
+    rep.send(helper.dict2tsv(data))
+  }
 })
 
 
