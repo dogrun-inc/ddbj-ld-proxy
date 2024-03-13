@@ -41,6 +41,8 @@ fastify.get('/test', async (req) => {
 fastify.get('/dl/test/:ids', async(req, res) => {
   const ids = "PRJNA13696,PRJNA13699,PRJNA13700,PRJNA13702,PRJNA13729,PRJNA18537,PRJNA18833,PRJNA18929";
   let metadatas = await get_metadata(ids, "project")
+  // arrayに変換する
+  metadatas = dict2csv(metadatas)
   res.send(metadatas)
 })
 
@@ -118,30 +120,26 @@ function get_annotation(annotations, property) {
   }
 }
 
-
-
 function dict2csv(data) {
-  const header = data[0].keys();
-  const csvWriterOptions = {
-    delimiter: '\t',
-    header,
-  };
-
+  if (typeof data[0] !== "object") {
+    throw new Error("data[0] is not an object");
+  } 
+  
+  const header = Object.keys(data[0]);
+  console.log(header)
+  
   //const csvWriterInstance = csvWriter.createObjectCsvWriter(csvWriterOptions);
 
   // 下記recordが変換されたarrayデータ
-  const records = data.map(row => {
-    const record = {};
-    for (const key of header) {
-      record[key] = row[key];
-    }
+  let records = data.map(row => {
+    const record = Object.values(row)
+    console.log(record)
     return record;
   });
-
+  records.unshift(header)
   return records
 
 }
-
 
 // ここまでDL API開発用コード（引き続き使うかも）
 
