@@ -419,13 +419,14 @@ fastify.get('/metastanza_data/:index_name/:id', async (req) => {
 
 
 fastify.get('/project/metadata/:ids', async (req, rep) => {
-  if (!req.params.id) {
+  if (!req.params.ids) {
     rep
       .code(400)
       .type('text/plain')
       .send('Bad Request. (no id set.)')
   }
-  const data = get_metadata(req.params.id)
+  const data = await get_metadata(req.params.ids)
+  console.log(data)
   rep.send(data)
 })
 
