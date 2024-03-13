@@ -85,7 +85,7 @@ fastify.get('/', async (req) => {
   }
 })
 
-fastify.get('/bioproject/_doc/:id', async (req, reply) => {
+fastify.get('/bioproject/_doc/:id', async (req, rep) => {
   if (!req.params.id) {
     return { }
   }
@@ -95,12 +95,10 @@ fastify.get('/bioproject/_doc/:id', async (req, reply) => {
     "id": id
   })
 
-  return {
-    index
-  }
+  rep.send({ index })
 })
 
-fastify.get('/bioproject/_search', async (req, reply) => {
+fastify.get('/bioproject/_search', async (req, rep) => {
   if (!req.query.q) {
     return { hits: [] }
   }
@@ -110,21 +108,21 @@ fastify.get('/bioproject/_search', async (req, reply) => {
     "q": q
   })
 
-  return res
+  rep.send(res)
 })
 
-fastify.post('/bioproject', async (req, reply) => {
+fastify.post('/bioproject', async (req, rep) => {
   const res = await client.search({
     "index": "bioproject",
     "body": req.body
   })
 
-  return res
+  rep.send(res)
 })
 
 // Copies　of the above apis as bioproject~
 
-fastify.get('/project/_doc/:id', async (req, reply) => {
+fastify.get('/project/_doc/:id', async (req, rep) => {
   if (!req.params.id) {
     return { }
   }
@@ -134,12 +132,10 @@ fastify.get('/project/_doc/:id', async (req, reply) => {
     "id": id
   })
 
-  return {
-    index
-  }
+  rep.send({ index })
 })
 
-fastify.get('/project/_search', async (req, reply) => {
+fastify.get('/project/_search', async (req, rep) => {
   if (!req.query.q) {
     return { hits: [] }
   }
@@ -149,50 +145,53 @@ fastify.get('/project/_search', async (req, reply) => {
     "q": q
   })
 
-  return res
+  rep.send(res)
 })
 
-fastify.post('/project', async (req, reply) => {
+fastify.post('/project', async (req, rep) => {
   const res = await client.search({
     "index": "project",
     "body": req.body
   })
 
-  return res
+  rep.send(res)
 })
 
 
-fastify.get('/genome/_doc/:id', async(req, reply) => {
+fastify.get('/genome/_doc/:id', async(req, rep) => {
   if (!req.params.id) {
-    return { }
+    rep
+      .code(400)
+      .type('text/plain')
+      .send('Bad Request. (no id set.)')
   }
   let id = req.params.id
   const index = await client.get({
     "index": "genome",
     "id": id
   })
-  return index
+  rep.send({ index })
 })
 
-fastify.get('/genome/_search', async(req, reply) => {
+fastify.get('/genome/_search', async(req, rep) => {
   if (!req.query.q) {
-    return { hits: [] }
+    rep.send({ hits: [] })
   }
   const q = req.query.q.toLowerCase()
   const res = await client.search({
     "index": "genome",
     "q": q
   })
-  return res
+  rep.send(res)
 })
 
-fastify.post('/genome', async(req, reply) => {
+fastify.post('/genome', async(req, rep) => {
   const res = await client.search({
     "index": "genome",
     "body": req.body
   })
 
-  return res
+  rep.send(res)
 })
 
 fastify.get('/plotly_data', async (req) => {
