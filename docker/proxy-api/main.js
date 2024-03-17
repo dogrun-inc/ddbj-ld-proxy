@@ -1,10 +1,8 @@
 import Fastify from 'fastify'
 import fastifyCors from '@fastify/cors'
 import { Client } from '@elastic/elasticsearch'
-
 import fs from 'fs';
 import archiver from 'archiver';
-import csvWriter from 'csv-writer';
 
 import helper from './helper.js';
 
@@ -19,10 +17,17 @@ const client = new Client({
   node: "http://192.168.11.20:9200"
 })
 
+fastify.get('/dl/test/:ids', async(req, res) => {
+  const ids = "PRJNA13696,PRJNA13699,PRJNA13700,PRJNA13702,PRJNA13729,PRJNA18537,PRJNA18833,PRJNA18929";
+  let metadatas = await helper.get_metadata(ids, "project")
+  // arrayに変換する
+  metadatas = helper.dict2tsv(metadatas)
+  res.send(metadatas)
+})
+
+
 fastify.get('/', async (req) => {
   req.log.info(JSON.stringify(req.query))
-
-  const test_str = process.env.ELASTICSEARCH_HOST + "/bioproject/_doc/PRJNA16522"
   if (!req.query.q) {
     return { hits: [] }
   }
@@ -289,6 +294,8 @@ fastify.get('/metastanza_data/:index_name/:id', async (req) => {
 })
 
 
+//以下DL API
+
 fastify.get('/dl/project/metadata/:ids', async (req, rep) => {
   if (!req.params.ids) {
     rep
@@ -296,7 +303,7 @@ fastify.get('/dl/project/metadata/:ids', async (req, rep) => {
       .type('text/plain')
       .send('Bad Request. (no id set.)')
   }
-  const data = await helper.get_metadata(req.params.ids)
+  const data = await helper.get_metadata(req.params.ids, "project")
 
   // クエリストリングで type=json が指定されている場合はJSONで応答する
   if (req.query.type === 'json') {
@@ -309,8 +316,28 @@ fastify.get('/dl/project/metadata/:ids', async (req, rep) => {
   }
 })
 
+fastify.get('/dl/genome/metadata/:ids', async (req, rep) => {
+  if (!req.params.ids) {
+    rep
+      .code(400)
+      .type('text/plain')
+      .send('Bad Request. (no id set.)')
+  }
+  const data = await helper.get_metadata(req.params.ids, "genome")
 
-fastify.get('/sequence/genome/:ids', async (req, rep) => {
+  // クエリストリングで type=json が指定されている場合はJSONで応答する
+  if (req.query.type === 'json') {
+    rep.header('Content-Disposition', 'attachment; filename=genome_metadata.json')
+    rep.send(data)
+  } else {
+    rep.header('Content-Disposition', 'attachment; filename=genome_metadata.tsv')
+    rep.type('text/tab-separated-values')
+    rep.send(helper.dict2tsv(data))
+  }
+})
+
+
+fastify.get('/dl/sequence/genome/:ids', async (req, rep) => {
   if (!req.params.ids) {
     rep
       .code(400)

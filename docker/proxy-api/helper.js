@@ -6,10 +6,10 @@ const client = new Client({
 })
 
 // for DL metadata API get_metadata ~ get_annotation
-const get_metadata = async function (ids, type="project") {
+const get_metadata = async function (ids, type) {
   const id_list = ids.split(",")
   const res = await client.search({
-    "index": "bioproject",
+    "index": `${type}`,
     "body":  {
       "query": {
               "terms" : {
@@ -19,8 +19,15 @@ const get_metadata = async function (ids, type="project") {
     }
   })
   const data = res.hits.hits
-  const metadatas = project_metadata(data);
-  return metadatas
+  if (type=="project"){
+    const metadatas = project_metadata(data);
+    return metadatas
+  } else if (type=="genome"){
+    const metadatas = genome_metadata(data);
+    return metadatas
+  } else {
+    return {}
+  }
 }
   
 const project_metadata = function (results) {
@@ -30,8 +37,6 @@ const project_metadata = function (results) {
     metadata.identifier = result._source.identifier;
     metadata.title = result._source.title;
     metadata.description = result._source.description;
-    metadata.organism = result._source.organism;
-    metadata.organization = result._source.organization;
 
     // アノテーション処理
     const annotations = result._source._annotation;
@@ -52,6 +57,64 @@ const project_metadata = function (results) {
         metadata[prop] = get_annotation(annotations, prop);
       });
     }
+    return metadata;
+  });
+  return metadatas;
+}
+
+const genome_metadata = function (results) {
+  const metadatas = results.map(result => {
+    const metadata = {};
+    metadata.identifier = result._source.identifier;
+    metadata.organism = result._source.organism;
+    metadata.quality = result._source.quality;
+    const properties = result._source.properties;
+    if (properties) {
+      const props = [
+        "bioproject",
+        "biosample",
+        "species_taxid"
+      ]
+      props.forEach(prop => {
+        metadata[prop] = get_annotation(properties, prop);
+      });
+    }
+    // アノテーション処理
+    const annotations = result._source._annotation;
+    if (annotations) {
+      // 属性リストに基づいたループ処理
+      const ann_props = [
+        "sample_organism",
+        "sample_taxid",
+        "sample_host_organism",
+        "sample_host_organism_id",
+        "sample_host_disease",
+        "sample_host_disease_id",
+        "sample_host_location",
+        "sample_ph_range",
+        "sample_temperature_range",
+      ];
+      ann_props.forEach(prop => {
+        metadata[prop] = get_annotation(annotations, prop);
+      });
+    }
+    const dfast = result._source._dfast;
+    if (dfast){
+      const dfast_props = [
+        "Total Sequence Length (bp)",
+        "Number of Sequences",
+        "Longest Sequences (bp)",
+        "N50 (bp)",
+        "GCcontent (%)",
+        "Number of CDSs",
+        "Coding Ratio (%)",
+        "Number of rRNAs",
+        "Number of tRNAs"
+      ];
+      dfast_props.forEach(prop => {
+        metadata[prop] = get_annotation(dfast, prop);
+      });
+    };
     return metadata;
   });
   return metadatas;
@@ -88,8 +151,8 @@ const dict2tsv = function (data) {
 
   // 下記recordが変換されたtsvデータ
   let records = data.map(row => {
-    // 改行コードが含まれるケースがあるため改行コードをエスケープ
-    const record = columnNames.map(n => row[n].replace(/\n/g, '\\n'))
+    // 文字列が存在する場合改行コードを置き換える
+    const record = columnNames.map(n => row[n] ? row[n].replace(/\n/g, '\\n'): row[n])
     return record.join("\t");
   });
   records.unshift(columnNames.join("\t"))
