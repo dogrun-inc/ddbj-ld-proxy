@@ -8,6 +8,7 @@ import helper from './helper.js';
 
 const fastify = Fastify({
   logger: process.env.LOGGER === 'on' ? true : false,
+  maxParamLength: 2500,
 })
 
 fastify.register(fastifyCors)
