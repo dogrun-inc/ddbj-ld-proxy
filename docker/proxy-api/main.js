@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import fastifyCors from '@fastify/cors'
+import { Client } from '@elastic/elasticsearch'
 
 import fs from 'fs';
 import archiver from 'archiver';
@@ -13,35 +14,10 @@ const fastify = Fastify({
 
 fastify.register(fastifyCors)
 
-// 以下API-ES接続テスト用の関数
-fastify.get('/test', async (req) => {
-  req.log.info(JSON.stringify(req.query))
-  const res = await client.search({
-    "index": "bioproject",
-    "body": {
-      "size": 2,
-      "query": {
-        "match_all": {}
-      }
-    }
+const client = new Client({
+  // node: process.env.ELASTICSEARCH_HOST,
+  node: "http://192.168.11.20:9200"
 })
-  return {
-    hits: res.hits.hits
-  }
-})
-
-
-
-// メタデータが取得できているか確認するためのAPI
-fastify.get('/dl/test/:ids', async(req, res) => {
-  const ids = "PRJNA13696,PRJNA13699,PRJNA13700,PRJNA13702,PRJNA13729,PRJNA18537,PRJNA18833,PRJNA18929";
-  let metadatas = await helper.get_metadata(ids, "project")
-  // arrayに変換する
-  metadatas = helper.dict2tsv(metadatas)
-  res.send(metadatas)
-})
-
-
 
 fastify.get('/', async (req) => {
   req.log.info(JSON.stringify(req.query))
@@ -313,7 +289,7 @@ fastify.get('/metastanza_data/:index_name/:id', async (req) => {
 })
 
 
-fastify.get('/project/metadata/:ids', async (req, rep) => {
+fastify.get('/dl/project/metadata/:ids', async (req, rep) => {
   if (!req.params.ids) {
     rep
       .code(400)

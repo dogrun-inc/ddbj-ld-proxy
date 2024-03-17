@@ -2,8 +2,6 @@ import { Client } from '@elastic/elasticsearch'
 
 const client = new Client({
   // node: process.env.ELASTICSEARCH_HOST,
-  //　compose.ymlから　"http://es01:9200"　を渡されていることを確認
-  // しかしes01:9200に接続できていない雰囲気
   node: "http://192.168.11.20:9200"
 })
 
@@ -85,16 +83,13 @@ const dict2tsv = function (data) {
   if (typeof data[0] !== "object") {
     throw new Error("data[0] is not an object");
   } 
-  
-  const columnNames = Object.keys(data[0]);
-  console.log(columnNames)
-  
+  const columnNames = Object.keys(data[0]);  
   //const csvWriterInstance = csvWriter.createObjectCsvWriter(csvWriterOptions);
 
   // 下記recordが変換されたtsvデータ
   let records = data.map(row => {
-    const record = columnNames.map(n => row[n])
-    console.log(record)
+    // 改行コードが含まれるケースがあるため改行コードをエスケープ
+    const record = columnNames.map(n => row[n].replace(/\n/g, '\\n'))
     return record.join("\t");
   });
   records.unshift(columnNames.join("\t"))
