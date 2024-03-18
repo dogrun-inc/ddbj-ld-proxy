@@ -1,8 +1,7 @@
 import { Client } from '@elastic/elasticsearch'
 
 const client = new Client({
-  // node: process.env.ELASTICSEARCH_HOST,
-  node: "http://192.168.11.20:9200"
+    node: process.env.ELASTICSEARCH_HOST,
 })
 
 // for DL metadata API get_metadata ~ get_annotation
@@ -31,7 +30,6 @@ const get_metadata = async function (ids, type) {
 }
   
 const project_metadata = function (results) {
-  // 特定の属性のみを抽出
   const metadatas = results.map(result => {
     const metadata = {};
     metadata.identifier = result._source.identifier;
@@ -79,10 +77,8 @@ const genome_metadata = function (results) {
         metadata[prop] = get_annotation(properties, prop);
       });
     }
-    // アノテーション処理
     const annotations = result._source._annotation;
     if (annotations) {
-      // 属性リストに基づいたループ処理
       const ann_props = [
         "sample_organism",
         "sample_taxid",
@@ -121,8 +117,6 @@ const genome_metadata = function (results) {
 }
   
 const get_annotation = function (annotations, property) {
-  // 指定したプロパティのannotationを取得
-  //const annotation = annotations.find(a => a.key === property)?.value;
   const annotation = annotations[property]
   if (annotation) {
       // 型によって処理を分岐
@@ -137,7 +131,6 @@ const get_annotation = function (annotations, property) {
       return annotation;
       }
   } else {
-      // annotationが存在しない場合はnullを返す
       return null;
   }
 }
@@ -147,9 +140,6 @@ const dict2tsv = function (data) {
     throw new Error("data[0] is not an object");
   } 
   const columnNames = Object.keys(data[0]);  
-  //const csvWriterInstance = csvWriter.createObjectCsvWriter(csvWriterOptions);
-
-  // 下記recordが変換されたtsvデータ
   let records = data.map(row => {
     // 文字列が存在する場合改行コードを置き換える
     const record = columnNames.map(n => row[n] ? row[n].replace(/\n/g, '\\n'): row[n])

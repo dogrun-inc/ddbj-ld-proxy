@@ -1,6 +1,6 @@
 import Fastify from 'fastify'
-import fastifyCors from '@fastify/cors'
 import { Client } from '@elastic/elasticsearch'
+import fastifyCors from '@fastify/cors'
 import fs from 'fs';
 import archiver from 'archiver';
 
@@ -14,21 +14,12 @@ const fastify = Fastify({
 fastify.register(fastifyCors)
 
 const client = new Client({
-  // node: process.env.ELASTICSEARCH_HOST,
-  node: "http://192.168.11.20:9200"
+  node: process.env.ELASTICSEARCH_HOST,
 })
-
-fastify.get('/dl/test/:ids', async(req, res) => {
-  const ids = "PRJNA13696,PRJNA13699,PRJNA13700,PRJNA13702,PRJNA13729,PRJNA18537,PRJNA18833,PRJNA18929";
-  let metadatas = await helper.get_metadata(ids, "project")
-  // arrayに変換する
-  metadatas = helper.dict2tsv(metadatas)
-  res.send(metadatas)
-})
-
 
 fastify.get('/', async (req) => {
   req.log.info(JSON.stringify(req.query))
+
   if (!req.query.q) {
     return { hits: [] }
   }
@@ -67,7 +58,7 @@ fastify.get('/', async (req) => {
   }
 })
 
-fastify.get('/bioproject/_doc/:id', async (req, rep) => {
+fastify.get('/bioproject/_doc/:id', async (req, reply) => {
   if (!req.params.id) {
     return { }
   }
@@ -77,10 +68,12 @@ fastify.get('/bioproject/_doc/:id', async (req, rep) => {
     "id": id
   })
 
-  rep.send({ index })
+  return {
+    index
+  }
 })
 
-fastify.get('/bioproject/_search', async (req, rep) => {
+fastify.get('/bioproject/_search', async (req, reply) => {
   if (!req.query.q) {
     return { hits: [] }
   }
@@ -90,21 +83,21 @@ fastify.get('/bioproject/_search', async (req, rep) => {
     "q": q
   })
 
-  rep.send(res)
+  return res
 })
 
-fastify.post('/bioproject', async (req, rep) => {
+fastify.post('/bioproject', async (req, reply) => {
   const res = await client.search({
     "index": "bioproject",
     "body": req.body
   })
 
-  rep.send(res)
+  return res
 })
 
 // Copies　of the above apis as bioproject~
 
-fastify.get('/project/_doc/:id', async (req, rep) => {
+fastify.get('/project/_doc/:id', async (req, reply) => {
   if (!req.params.id) {
     return { }
   }
@@ -114,10 +107,12 @@ fastify.get('/project/_doc/:id', async (req, rep) => {
     "id": id
   })
 
-  rep.send({ index })
+  return {
+    index
+  }
 })
 
-fastify.get('/project/_search', async (req, rep) => {
+fastify.get('/project/_search', async (req, reply) => {
   if (!req.query.q) {
     return { hits: [] }
   }
@@ -127,53 +122,50 @@ fastify.get('/project/_search', async (req, rep) => {
     "q": q
   })
 
-  rep.send(res)
+  return res
 })
 
-fastify.post('/project', async (req, rep) => {
+fastify.post('/project', async (req, reply) => {
   const res = await client.search({
     "index": "project",
     "body": req.body
   })
 
-  rep.send(res)
+  return res
 })
 
 
-fastify.get('/genome/_doc/:id', async(req, rep) => {
+fastify.get('/genome/_doc/:id', async(req, reply) => {
   if (!req.params.id) {
-    rep
-      .code(400)
-      .type('text/plain')
-      .send('Bad Request. (no id set.)')
+    return { }
   }
   let id = req.params.id
   const index = await client.get({
     "index": "genome",
     "id": id
   })
-  rep.send({ index })
+  return index
 })
 
-fastify.get('/genome/_search', async(req, rep) => {
+fastify.get('/genome/_search', async(req, reply) => {
   if (!req.query.q) {
-    rep.send({ hits: [] })
+    return { hits: [] }
   }
   const q = req.query.q.toLowerCase()
   const res = await client.search({
     "index": "genome",
     "q": q
   })
-  rep.send(res)
+  return res
 })
 
-fastify.post('/genome', async(req, rep) => {
+fastify.post('/genome', async(req, reply) => {
   const res = await client.search({
     "index": "genome",
     "body": req.body
   })
 
-  rep.send(res)
+  return res
 })
 
 fastify.get('/plotly_data', async (req) => {
@@ -295,7 +287,6 @@ fastify.get('/metastanza_data/:index_name/:id', async (req) => {
 })
 
 
-//以下DL API
 
 fastify.get('/dl/project/metadata/:ids', async (req, rep) => {
   if (!req.params.ids) {
@@ -337,7 +328,6 @@ fastify.get('/dl/genome/metadata/:ids', async (req, rep) => {
   }
 })
 
-
 fastify.get('/dl/sequence/genome/:ids', async (req, rep) => {
   if (!req.params.ids) {
     rep
@@ -345,7 +335,6 @@ fastify.get('/dl/sequence/genome/:ids', async (req, rep) => {
       .type('text/plain')
       .send('Bad Request. (no id set.)')
   }
-
   // TODO: ids から pathMap を取得するメソッドを作成
   //const pathMap = getSequencePathList(req.params.id)
   const pathMap = new Map()
