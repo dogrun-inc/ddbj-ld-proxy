@@ -343,7 +343,7 @@ fastify.get('/dl/sequence/genome/:ids', async (req, rep) => {
     '/mnt/data/mdatahub_sample/c1/ref16s_500k.fasta',
     '/mnt/data/mdatahub_sample/c2/ref16s_500k.fasta',
   ]
-  req.params.ids.slit(',').forEach((id, index) => {
+  req.params.ids.split(',').forEach((id, index) => {
     pathMap.set(id, pathList[index])
   })
 
@@ -366,9 +366,21 @@ fastify.get('/dl/sequence/genome/:ids', async (req, rep) => {
   archive.finalize()
 
   output.on('close', () => {
-    rep.type('application/zip')
+    rep.headers({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': 'inline; filename="sequence_genome.zip"'
+    })
     rep.send(fs.createReadStream(zipFilePath))
   })
+})
+
+
+fastify.get('/dl/sequence/cds/:ids', async (req, rep) => {
+
+})
+
+fastify.get('/dl/sequence/protein/:ids', async (req, rep) => {
+
 })
 
 
