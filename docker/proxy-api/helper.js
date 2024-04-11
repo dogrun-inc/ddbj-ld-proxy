@@ -142,7 +142,7 @@ const dict2tsv = function (data) {
   const columnNames = Object.keys(data[0]);  
   let records = data.map(row => {
     // 文字列が存在する場合改行コードを置き換える
-    const record = columnNames.map(n => row[n] ? row[n].replace(/\n/g, '\\n'): row[n])
+    const record = columnNames.map(n => row[n] ? row[n].toString().replace(/\n/g, '\\n'): row[n])
     return record.join("\t");
   });
   records.unshift(columnNames.join("\t"))
